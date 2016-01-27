@@ -7,7 +7,16 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "DistanceField", "src\Distan
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "img", "img", "{6D9D1EC4-3D1A-4C3E-AC66-DAFF7452E978}"
 	ProjectSection(SolutionItems) = preProject
+		img\r1024.png = img\r1024.png
+		img\r2048.png = img\r2048.png
 		img\r512.png = img\r512.png
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "project", "project", "{4C7650D2-BECE-448D-B151-9D583045046C}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		paket.dependencies = paket.dependencies
+		paket.lock = paket.lock
 	EndProjectSection
 EndProject
 Global
