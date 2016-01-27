@@ -1,5 +1,7 @@
 ﻿module Algo
 
+open System.Numerics
+
 let getBorder ((bm:bool[,]),xRes,yRes) =
     [for x = 1 to xRes-2 do 
       for y = 1 to yRes-2 do
@@ -9,6 +11,24 @@ let getBorder ((bm:bool[,]),xRes,yRes) =
         if not (square && diagonal) then yield (x,y)]
     |> List.partition (fun (x,y) -> bm.[x,y])
 
+let getBorderArr ((bm:bool[,]),xRes,yRes) =
+    [|  for x = 1 to xRes-2 do 
+          for y = 1 to yRes-2 do
+            let p = bm.[x,y]
+            let square = bm.[x,y-1]=p && bm.[x,y+1]=p && bm.[x-1,y]=p && bm.[x+1,y]=p 
+            let diagonal = bm.[x-1,y-1]=p && bm.[x-1,y+1]=p && bm.[x+1,y-1]=p && bm.[x+1,y+1]=p
+            if not (square && diagonal) then yield (x,y)
+    |] |> Array.partition (fun (x,y) -> bm.[x,y])
+
+
+//let getBorder ((bm:Vector2),xRes,yRes) =
+//    [for x = 1 to xRes-2 do 
+//      for y = 1 to yRes-2 do
+//        let p = bm.[x,y]
+//        let square = bm.[x,y-1]=p && bm.[x,y+1]=p && bm.[x-1,y]=p && bm.[x+1,y]=p 
+//        let diagonal = bm.[x-1,y-1]=p && bm.[x-1,y+1]=p && bm.[x+1,y-1]=p && bm.[x+1,y+1]=p
+//        if not (square && diagonal) then yield (x,y)]
+//    |> List.partition (fun (x,y) -> bm.[x,y])
 
 let borderAsArray b yRes = 
   let lineBorder = Array.init yRes (fun _ -> [])

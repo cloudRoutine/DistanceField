@@ -2,9 +2,10 @@
 
 open System
 open System.Windows
+open System.Windows.Media
+open System.Windows.Media.Imaging
 open System.Windows.Forms
 open System.Drawing
-
 open Helper
 open Algo
 
@@ -12,7 +13,7 @@ open Algo
 [<EntryPoint>]
 [<System.STAThread>]
 let main argv =
-    let (xRes,yRes,rawpix) = getPixels (Application.StartupPath+"""\r512.png""")
+    let (xRes,yRes,rawpix) = getPixels (__SOURCE_DIRECTORY__ + @"/../../img/r512.png")
     printfn "Size %A %A" xRes yRes
 
     let isInside = Array2D.zeroCreate xRes yRes
@@ -27,7 +28,7 @@ let main argv =
 
 
 
-    let bm = new Bitmap(Application.StartupPath+"""\r512.png""")
+    let bm = new Bitmap(__SOURCE_DIRECTORY__ + @"/../../img/r512.png")
     let pb = new PictureBox()
 
     let border = getBorder (isInside,xRes,yRes)
