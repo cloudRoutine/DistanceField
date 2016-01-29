@@ -6,16 +6,27 @@ let getBorder ((isInside:bool[,]),xRes,yRes) =
   [|for x = 1 to xRes-2 do 
       for y = 1 to yRes-2 do
         let p = isInside.[x,y]
-        let square = isInside.[x,y-1]=p && isInside.[x,y+1]=p && isInside.[x-1,y]=p && isInside.[x+1,y]=p 
-        let diagonal = isInside.[x-1,y-1]=p && isInside.[x-1,y+1]=p && isInside.[x+1,y-1]=p && isInside.[x+1,y+1]=p
+        
+        let square = 
+            isInside.[x,y-1] = p && 
+            isInside.[x,y+1] = p && 
+            isInside.[x-1,y] = p && 
+            isInside.[x+1,y] = p 
+
+        let diagonal = 
+            isInside.[x-1,y-1] = p && 
+            isInside.[x-1,y+1] = p && 
+            isInside.[x+1,y-1] = p && 
+            isInside.[x+1,y+1] = p
+
         if not (square && diagonal) then yield (x,y)|]
   |> Array.partition (fun (x,y) -> isInside.[x,y])
 
 let borderAsYSortedArray border yRes = 
   let lineBorder = Array.init yRes (fun _ -> [||])
-  Array.groupBy (fun (x,y) -> y) border
-  |> Array.map (fun (y,xs) -> (y,Array.map fst xs))
-  |> Array.iter (fun (y,xs) -> lineBorder.[y] <- xs)
+  border
+  |> Array.groupBy  (fun (x,y ) -> y) 
+  |> Array.iter     (fun (y,xs) -> lineBorder.[y] <- Array.map fst xs)
   lineBorder
 
 //let getBorder ((bm:Vector2),xRes,yRes) =
