@@ -2,24 +2,21 @@
 
 open System.Numerics
 
-let getBorder ((bm:bool[,]),xRes,yRes) =
-    [for x = 1 to xRes-2 do 
+let getBorder ((isInside:bool[,]),xRes,yRes) =
+  [|for x = 1 to xRes-2 do 
       for y = 1 to yRes-2 do
-        let p = bm.[x,y]
-        let square = bm.[x,y-1]=p && bm.[x,y+1]=p && bm.[x-1,y]=p && bm.[x+1,y]=p 
-        let diagonal = bm.[x-1,y-1]=p && bm.[x-1,y+1]=p && bm.[x+1,y-1]=p && bm.[x+1,y+1]=p
-        if not (square && diagonal) then yield (x,y)]
-    |> List.partition (fun (x,y) -> bm.[x,y])
+        let p = isInside.[x,y]
+        let square = isInside.[x,y-1]=p && isInside.[x,y+1]=p && isInside.[x-1,y]=p && isInside.[x+1,y]=p 
+        let diagonal = isInside.[x-1,y-1]=p && isInside.[x-1,y+1]=p && isInside.[x+1,y-1]=p && isInside.[x+1,y+1]=p
+        if not (square && diagonal) then yield (x,y)|]
+  |> Array.partition (fun (x,y) -> isInside.[x,y])
 
-let getBorderArr ((bm:bool[,]),xRes,yRes) =
-    [|  for x = 1 to xRes-2 do 
-          for y = 1 to yRes-2 do
-            let p = bm.[x,y]
-            let square = bm.[x,y-1]=p && bm.[x,y+1]=p && bm.[x-1,y]=p && bm.[x+1,y]=p 
-            let diagonal = bm.[x-1,y-1]=p && bm.[x-1,y+1]=p && bm.[x+1,y-1]=p && bm.[x+1,y+1]=p
-            if not (square && diagonal) then yield (x,y)
-    |] |> Array.partition (fun (x,y) -> bm.[x,y])
-
+let borderAsYSortedArray border yRes = 
+  let lineBorder = Array.init yRes (fun _ -> [||])
+  Array.groupBy (fun (x,y) -> y) border
+  |> Array.map (fun (y,xs) -> (y,Array.map fst xs))
+  |> Array.iter (fun (y,xs) -> lineBorder.[y] <- xs)
+  lineBorder
 
 //let getBorder ((bm:Vector2),xRes,yRes) =
 //    [for x = 1 to xRes-2 do 
@@ -30,16 +27,8 @@ let getBorderArr ((bm:bool[,]),xRes,yRes) =
 //        if not (square && diagonal) then yield (x,y)]
 //    |> List.partition (fun (x,y) -> bm.[x,y])
 
-let borderAsArray b yRes = 
-  let lineBorder = Array.init yRes (fun _ -> [])
-  List.groupBy (fun (x,y) -> y) b
-  |> List.map (fun (y,xs) -> (y,List.map fst xs))
-  |> List.iter (fun (y,xs) -> lineBorder.[y] <- xs)
-  lineBorder
-
 
 let inline dist x y = (x*x) + (y*y)
-
 
 // Brute force, can double in performance with small changes and/or
 // when moved around in different files for no clear reason
@@ -58,9 +47,9 @@ let genField (xRes,yRes,border,(isInside:bool[,])) =
 
 // If a point is found n units away, then stop searching when reaching n lines away,
 // a line is one unit tall so no closer points can be found after this line
-let fastGenField (xRes,yRes,border,(isInside:bool[,])) = 
-  let intBorder = borderAsArray (fst border) yRes
-  let extBorder = borderAsArray (snd border) yRes
+let fastGenFieldOld (xRes,yRes,border,(isInside:bool[,])) = 
+  let intBorder = borderAsYSortedArray (fst border) yRes
+  let extBorder = borderAsYSortedArray (snd border) yRes
 
   let searchLine x y line =
     let xs = if isInside.[x,y] then intBorder.[line] else extBorder.[line]
@@ -70,8 +59,6 @@ let fastGenField (xRes,yRes,border,(isInside:bool[,])) =
     best
   
   let searchField x y =
-    let clipy y = min (yRes-1) y
-
     let rec loop i lim best = 
       if i >= lim then best
       else let y1 = y - i
@@ -81,7 +68,7 @@ let fastGenField (xRes,yRes,border,(isInside:bool[,])) =
            let possiblebest = min a b
            if possiblebest < best
            then
-             let lim' = (int ((float i) + (sqrt possiblebest))) // Rounding may be questionable
+             let lim' = (int ((float i) + (sqrt possiblebest))) // Incorrect calculation of limit
              loop (i+1) lim' possiblebest
            else loop (i+1) lim best
            
@@ -92,3 +79,26 @@ let fastGenField (xRes,yRes,border,(isInside:bool[,])) =
     for x = 0 to xRes-1 do
       field.[x,y] <- sqrt (searchField x y)
   field
+
+
+let fastGenField (xRes,yRes,border,(isInside:bool[,])) = 
+  let intBorder = borderAsYSortedArray (fst border) yRes
+  let extBorder = borderAsYSortedArray (snd border) yRes
+
+  let inline searchLine x y line (border:int[][]) =
+    let mutable best = System.Int32.MaxValue
+    if (line >= 0) && (line < yRes) then
+      for xx in border.[line] do best <- min best ((x - xx) * (x - xx) + (y - line) * (y - line))
+    best
+ 
+  let searchField x y border =
+    let rec loop i limit best =
+      if i > limit then best
+      else let closest = min (searchLine x y (y + i) border) (searchLine x y (y - i) border)
+           if closest < best
+           then loop (i+1) (int (sqrt (float closest))) closest
+           else loop (i+1) limit best
+           
+    loop 0 (max (yRes-y) y) System.Int32.MaxValue
+
+  Array2D.mapi (fun x y inside -> sqrt (float (searchField x y (if inside then intBorder else extBorder)))) isInside

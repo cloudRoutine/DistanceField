@@ -62,13 +62,13 @@ let main argv =
     frm.Show()
 
 
-    printf "Fast algorithm..."
+    printf "New code..."
     let f1 = time fastGenField (xRes,yRes,border,isInside)
     Array2D.iteri (fun x y d -> field.[x,y] <- d) f1
     redraw()     
     
-    printf "Slow algorithm..."
-    let f2 = time genField (xRes,yRes,border,isInside)
+    printf "Old code..."
+    let f2 = time fastGenFieldOld (xRes,yRes,border,isInside)
     Array2D.iteri (fun x y d -> field.[x,y] <- d) f2
     redraw()     
 
