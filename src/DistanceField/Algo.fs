@@ -1,6 +1,8 @@
 ﻿module Algo
 
-let getBorder ((isInside:bool[,]),xRes,yRes) =
+open System.Threading.Tasks
+
+let getBorder (isInside:bool[,], xRes, yRes) =
   [|for x = 1 to xRes-2 do 
       for y = 1 to yRes-2 do
         let p = isInside.[x,y]
@@ -21,27 +23,17 @@ let getBorder ((isInside:bool[,]),xRes,yRes) =
   |> Array.partition (fun (x,y) -> isInside.[x,y])
 
 let borderAsYSortedArray border yRes = 
-  let lineBorder = Array.init yRes (fun _ -> [||])
+  let lineBorder = Array.create yRes [||]
   border
   |> Array.groupBy snd
-  |> Array.iter   (fun (y,xs) -> lineBorder.[y] <- Array.map fst xs)
+  |> Array.iter (fun (y,xs) -> lineBorder.[y] <- Array.map fst xs)
   lineBorder
-
-//let getBorder ((bm:Vector2),xRes,yRes) =
-//    [for x = 1 to xRes-2 do 
-//      for y = 1 to yRes-2 do
-//        let p = bm.[x,y]
-//        let square = bm.[x,y-1]=p && bm.[x,y+1]=p && bm.[x-1,y]=p && bm.[x+1,y]=p 
-//        let diagonal = bm.[x-1,y-1]=p && bm.[x-1,y+1]=p && bm.[x+1,y-1]=p && bm.[x+1,y+1]=p
-//        if not (square && diagonal) then yield (x,y)]
-//    |> List.partition (fun (x,y) -> bm.[x,y])
-
 
 let inline dist x y = (x*x) + (y*y)
 
 // Brute force, can double in performance with small changes and/or
 // when moved around in different files for no clear reason
-let genField (xRes,yRes,border,(isInside:bool[,])) = 
+let genField (xRes, yRes, border, isInside:bool[,]) = 
   let field = Array2D.zeroCreate xRes yRes
   let (intBorder,extBorder) = border
   for y = 0 to yRes-1 do
@@ -56,7 +48,7 @@ let genField (xRes,yRes,border,(isInside:bool[,])) =
 
 // If a point is found n units away, then stop searching when reaching n lines away,
 // a line is one unit tall so no closer points can be found after this line
-let fastGenFieldOld (xRes,yRes,border,(isInside:bool[,])) = 
+let fastGenFieldOld (xRes, yRes, border, isInside:bool[,]) = 
   let intBorder = borderAsYSortedArray (fst border) yRes
   let extBorder = borderAsYSortedArray (snd border) yRes
 
@@ -69,23 +61,20 @@ let fastGenFieldOld (xRes,yRes,border,(isInside:bool[,])) =
   
   let searchField x y =
     let rec loop i lim best = 
-      if i >= lim then best
-      else let y1 = y - i
-           let y2 = y + i
-           let a = if (y1 >= 0) && (y1 < yRes) then searchLine x y y1 else 1000000.0
-           let b = if (y2 >= 0) && (y2 < yRes) && (y1<>y2) then searchLine x y y2 else 1000000.0
-           let possiblebest = min a b
-           if possiblebest < best
-           then
-             let lim' = (int ((float i) + (sqrt possiblebest))) // Incorrect calculation of limit
-             loop (i+1) lim' possiblebest
-           else loop (i+1) lim best
+        if i >= lim then best else 
+        let y1 = y - i
+        let y2 = y + i
+        let a = if (y1 >= 0) && (y1 < yRes) then searchLine x y y1 else 1000000.0
+        let b = if (y2 >= 0) && (y2 < yRes) && (y1<>y2) then searchLine x y y2 else 1000000.0
+        let possiblebest = min a b
+        if possiblebest >= best then loop (i+1) lim best else
+        let lim' = (int ((float i) + (sqrt possiblebest))) // Incorrect calculation of limit
+        loop (i+1) lim' possiblebest
            
     loop 0 (max (yRes-y) y) 1000000.
 
   let field = Array2D.zeroCreate xRes yRes
-  let m = System.Environment.ProcessorCount
-  System.Threading.Tasks.Parallel.For(0, yRes,
+  Parallel.For (0, yRes,
     fun y -> 
       for x = 0 to xRes-1 do
         field.[x,y] <- sqrt (searchField x y)  
@@ -93,28 +82,29 @@ let fastGenFieldOld (xRes,yRes,border,(isInside:bool[,])) =
   field
 
 
-let fastGenField (xRes,yRes,border,(isInside:bool[,])) = 
+let fastGenField (xRes, yRes ,border, isInside:bool[,]) = 
   let intBorder = borderAsYSortedArray (fst border) yRes
   let extBorder = borderAsYSortedArray (snd border) yRes
 
   let inline searchLine x y line (border:int[][]) =
     let mutable best = System.Int32.MaxValue
     if (line >= 0) && (line < yRes) then
-      for xx in border.[line] do best <- min best ((x - xx) * (x - xx) + (y - line) * (y - line))
+      for xx in border.[line] do 
+        best <- min best ((x - xx) * (x - xx) + (y - line) * (y - line))
     best
  
   let searchField x y border =
     let rec loop i limit best =
-      if i > limit then best
-      else let closest = min (searchLine x y (y + i) border) (searchLine x y (y - i) border)
-           if closest < best
-           then loop (i+1) (int (sqrt (float closest))) closest
-           else loop (i+1) limit best
+      if i > limit then best else 
+      let closest = min (searchLine x y (y + i) border) (searchLine x y (y - i) border)
+      if  closest < best
+      then loop (i+1) (int (sqrt (float closest))) closest
+      else loop (i+1) limit best
            
     loop 0 (max (yRes-y) y) System.Int32.MaxValue
 
   let output = Array2D.zeroCreate xRes yRes
-  System.Threading.Tasks.Parallel.For(0, yRes,
+  Parallel.For (0, yRes,
     fun y -> 
       for x = 0 to xRes-1 do
         let inside = isInside.[x,y]
