@@ -1,7 +1,5 @@
 ﻿module Algo
 
-open System.Numerics
-
 let getBorder ((isInside:bool[,]),xRes,yRes) =
   [|for x = 1 to xRes-2 do 
       for y = 1 to yRes-2 do
@@ -25,8 +23,8 @@ let getBorder ((isInside:bool[,]),xRes,yRes) =
 let borderAsYSortedArray border yRes = 
   let lineBorder = Array.init yRes (fun _ -> [||])
   border
-  |> Array.groupBy  (fun (x,y ) -> y) 
-  |> Array.iter     (fun (y,xs) -> lineBorder.[y] <- Array.map fst xs)
+  |> Array.groupBy snd
+  |> Array.iter   (fun (y,xs) -> lineBorder.[y] <- Array.map fst xs)
   lineBorder
 
 //let getBorder ((bm:Vector2),xRes,yRes) =
@@ -86,9 +84,12 @@ let fastGenFieldOld (xRes,yRes,border,(isInside:bool[,])) =
     loop 0 (max (yRes-y) y) 1000000.
 
   let field = Array2D.zeroCreate xRes yRes
-  for y = 0 to yRes-1 do
-    for x = 0 to xRes-1 do
-      field.[x,y] <- sqrt (searchField x y)
+  let m = System.Environment.ProcessorCount
+  System.Threading.Tasks.Parallel.For(0, yRes,
+    fun y -> 
+      for x = 0 to xRes-1 do
+        field.[x,y] <- sqrt (searchField x y)  
+  ) |> ignore
   field
 
 
@@ -112,4 +113,11 @@ let fastGenField (xRes,yRes,border,(isInside:bool[,])) =
            
     loop 0 (max (yRes-y) y) System.Int32.MaxValue
 
-  Array2D.mapi (fun x y inside -> sqrt (float (searchField x y (if inside then intBorder else extBorder)))) isInside
+  let output = Array2D.zeroCreate xRes yRes
+  System.Threading.Tasks.Parallel.For(0, yRes,
+    fun y -> 
+      for x = 0 to xRes-1 do
+        let inside = isInside.[x,y]
+        output.[x,y] <- sqrt (float (searchField x y (if inside then intBorder else extBorder)))
+  ) |> ignore
+  output
